@@ -1,0 +1,32 @@
+#!/bin/bash 
+# $1 platform runing on $2 core it have $3 id $4 app
+source env.sh 
+for times in {1..720} 
+do 
+    echo $times 
+    for j in $4 #parsec.blackscholes  #parsec.bodytrack  parsec.canneal   
+    do 
+	for sec in 0.1 0.5 1 2 3 5
+	do
+		DATE=$(date +%H%M%S)
+		echo $sec $j $DATE #$(date '+%X')
+		rm outputs/profiler-$1-$2-$3-$j-$DATE-$sec.s.out
+		./profiler $2 $sec >> outputs/profiler-$1-$2-$3-$j-$DATE-$sec.s.out
+	done
+
+
+
+	DATE=$(date +%H%M%S)
+	rm outputs/parse-$1-$2-$3-$j-$DATE.out
+        echo $j $DATE #$(date '+%X') 
+        parsecmgmt -a run -p $j -i native -n $2  -c gcc-hooks>> outputs/parse-$1-$2-$3-$j-$DATE.out #native simsmall 
+        echo "-------------------------------- " 
+        #echo " writing out results to dakai PC" 
+        #sshpass -p "" scp ./outputs/parse-$1-$2-$3-$j-$DATE.out d@:/home/d/h-results/$1/parse-$1-$2-$3-$j-$DATE.out 
+    done 
+done 
+  
+echo "                                 " 
+echo "-------------------------------- " 
+#echo " writing out all results to dakai PC" 
+#sshpass -p "" scp ./outputs/*.out d@:/home/d/h-results/$1/  

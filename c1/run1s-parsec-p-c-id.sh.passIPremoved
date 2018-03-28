@@ -1,0 +1,21 @@
+#!/bin/bash
+# $1 platform runing on $2 core it have $3 id
+source env.sh
+rm outputs/parse-$1-$2-$3.out
+for j in parsec.blackscholes  parsec.bodytrack  parsec.canneal  parsec.dedup  parsec.facesim  parsec.ferret  parsec.fluidanimate  parsec.freqmine  parsec.netdedup    parsec.netstreamcluster  parsec.raytrace  parsec.streamcluster  parsec.swaptions  parsec.vips  parsec.x264  splash2.barnes  splash2.cholesky  splash2.fft  splash2.fmm  splash2.lu_cb  splash2.lu_ncb  splash2.ocean_cp  splash2.ocean_ncp  splash2.radiosity  splash2.radix  splash2.raytrace  splash2.volrend  splash2.water_nsquared  splash2.water_spatial  splash2x.barnes  splash2x.cholesky  splash2x.fft  splash2x.fmm  splash2x.lu_cb  splash2x.lu_ncb  splash2x.ocean_cp  splash2x.ocean_ncp  splash2x.radiosity  splash2x.radix  splash2x.raytrace  splash2x.volrend  splash2x.water_nsquared  splash2x.water_spatial
+do
+    echo $j
+    parsecmgmt -a run -p $j -i native -n $2 >> outputs/parse-$1-$2-$3.out
+    echo "-------------------------------- "
+    echo " writing out results to dakai PC"
+    sshpass -p "" scp ./outputs/parse-$1-$2-$3.out d@:/home/d/h-results/$1/parse-$1-$2-$3.out
+done
+
+echo "                                 "
+echo "-------------------------------- "
+echo " writing out all results to dakai PC"
+sshpass -p "" scp ./outputs/*.out d@:/home/d/h-results/$1/
+
+
+
+
