@@ -1,0 +1,77 @@
+#from multiprocessing.pool import ThreadPool as Pool
+from multiprocessing import Process
+#from threading import Thread
+from time import sleep 
+from paramiko import SSHClient
+import paramiko
+
+numberOfServers=8
+
+def threadFunction(num,ip):
+	print("- thread number:", num,ip)
+	commandsList="""echo"""
+	if num ==0:
+		commandsList = """killall --user """
+	else:
+		commandsList ="""killall --user """
+	#print('CommandsList')
+	i=0
+	for line in commandsList.splitlines():
+		i = i + 1
+		print(i,ip,": ",'   line', i, ' :', line)
+		ssh_stdin, ssh_stdout, ssh_stderr = '','',''#ssh.exec_command(line)
+		ssh = SSHClient()
+		ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+		ssh.connect(ip, username="", password="")
+		#sleep_time = 0.001
+		ssh_transp = ssh.get_transport()
+		chan = ssh_transp.open_session()
+		# chan.settimeout(3 * 60 * 60)
+		chan.setblocking(0)
+		outdata, errdata = '', ''
+		chan.exec_command(line)
+		for OutputLines in ssh_stdout:
+			print(i,ip,": ",'      execution results: ssh_stdout >', OutputLines)
+		while True:  # monitoring process
+			# Reading from output streams
+			while chan.recv_ready():
+				outdata += chan.recv(1000)
+			while chan.recv_stderr_ready():
+				errdata += chan.recv_stderr(1000)
+			if chan.exit_status_ready():  # If completed
+				print(i,ip,": ",'      execution results: outdata >')
+				for OutputLines in outdata.splitlines():
+					print(i,ip,": ",'                               ', OutputLines)
+				print(ip,": ",'      execution results: errdata >')
+				for OutputLines in errdata.splitlines():
+	        	            print(i,ip,": ",'                               ', OutputLines)
+				break
+			#time.sleep(sleep_time)
+		retcode = chan.recv_exit_status()
+		ssh_transp.close()
+
+	return()
+
+if __name__=='__main__':
+
+	ips=["10.100.110.136","10.100.110.138","10.100.110.141",
+		"10.100.110.143","10.100.110.139","10.100.110.144",
+		"10.100.110.135","10.100.110.131"]
+
+	#threadPool=Pool(numberOfServers)
+	threadPool=[]
+	for i in range(numberOfServers):
+		print("Main Create Thread",i)
+		#threadPool[i].apply_async(threadFunction,([i,ips[i]]))
+		threadPool.append(Process(target=threadFunction,args=( [i,ips[i]] )))
+		threadPool[i].start()
+		sleep(3)
+
+	for i in threadPool:
+		i.terminate()
+
+	#for i in range(numberOfServers):
+	#	print("join thread",i)
+	#	threadPool[i].join()
+
+	print("end of Main")

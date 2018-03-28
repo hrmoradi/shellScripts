@@ -1,0 +1,107 @@
+#from multiprocessing.pool import ThreadPool as Pool
+from multiprocessing import Process
+#from threading import Thread
+from time import sleep 
+from paramiko import SSHClient
+import paramiko
+
+class  Threads:
+	def __init__(self,num,ip,status):
+		self.num=num
+		self.ip=ip
+		self.status=status
+	def threadFunction(self):
+		print("- thread number:", self.num,self.ip,self.status)
+		self.commandsList="""echo"""
+		if self.status=="start":
+			if self.num ==7:
+				self.commandsList = """cd ~/parsec-3.0/ && pwd && bash infer.sh oc 16 inferProfilerCPUroi parsec.blackscholes""" #parsec.blackscholes  parsec.bodytrack  parsec.canneal
+			else:
+				self.commandsList ="""~/ibench/iBench/src/cpu 21600"""
+		#sudo poweroff
+		if self.status=="stop":
+			if self.num ==7:
+				self.commandsList ="""sudo poweroff && sudo poweroff && killall --user """
+			else:
+				self.commandsList ="""sudo poweroff && sudo poweroff"""
+
+
+
+		#print('CommandsList')
+		self.i=0
+		for line in self.commandsList.splitlines():
+			self.i = self.i + 1
+			print(self.num,self.ip,": ",'   line', self.i, ' :', line)
+			self.ssh_stdin, self.ssh_stdout, self.ssh_stderr = '','','' #ssh.exec_command(line)
+			self.ssh = SSHClient()
+			self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+			self.ssh.connect(self.ip, username="", password="")
+			#sleep_time = 0.001
+			self.ssh_transp = self.ssh.get_transport()
+			self.chan = self.ssh_transp.open_session()
+			# chan.settimeout(3 * 60 * 60)
+			self.chan.setblocking(0)
+			self.outdata, self.errdata = '', ''
+			self.chan.exec_command(line)
+			for OutputLines in self.ssh_stdout:
+				print(self.num,self.ip,": ",'      execution results: ssh_stdout >', OutputLines)
+			while True:  # monitoring process
+				# Reading from output streams
+				while self.chan.recv_ready():
+					self.outdata += self.chan.recv(1000).decode('ascii')
+				while self.chan.recv_stderr_ready():
+					self.errdata += self.chan.recv_stderr(1000).decode('ascii')
+				if self.chan.exit_status_ready():  # If completed
+					print(self.num,self.ip,": ",'      execution results: outdata >')
+					for OutputLines in self.outdata.splitlines():
+						print(self.num,self.ip,": ",'                               ', OutputLines)
+					print(self.num,self.ip,": ",'      execution results: errdata >')
+					for OutputLines in self.errdata.splitlines():
+		        	            print(self.num,self.ip,": ",'                               ', OutputLines)
+					break
+				#time.sleep(sleep_time)
+			self.retcode = self.chan.recv_exit_status()
+			self.ssh_transp.close()
+
+		return()
+
+if __name__=='__main__':
+
+	numberOfServers = 8
+
+	ips=["10.100.110.136","10.100.110.138","10.100.110.141",
+		"10.100.110.143","10.100.110.139","10.100.110.144",
+		"10.100.110.135","10.100.110.131"]
+
+	#threadPool=Pool(numberOfServers)
+	threadPool=[]
+	for i in range(numberOfServers):
+		print("Main Create Thread",i,"start")
+		#threadPool[i].apply_async(threadFunction,([i,ips[i]]))
+		newThreadFunction=Threads(i,ips[7-i],"start") 
+		threadPool.append(Process(target=newThreadFunction.threadFunction,args=()))
+		threadPool[i].start()
+		sleep(5)
+	#sudo poweroff
+	threadPool2=[]
+	for i in range(numberOfServers):
+		sleep(1800)
+		print("Main Create Thread",i,"stop")
+		#threadPool[i].apply_async(threadFunction,([i,ips[i]])
+		newThreadFunction2=Threads(i,ips[7-i],"stop") 
+		threadPool2.append(Process(target=newThreadFunction2.threadFunction,args=()))
+		threadPool2[i].start()
+
+
+	for i in threadPool:
+		i.terminate()
+
+	for i in threadPool2:
+		i.terminate()
+
+
+	#for i in range(numberOfServers):
+	#	print("join thread",i)
+	#	threadPool[i].join()
+
+	print("end of Main")
